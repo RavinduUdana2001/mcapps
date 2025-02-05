@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "977713975564",
+    "project_id": "mcapps-bf1db",
+    "storage_bucket": "mcapps-bf1db.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:977713975564:android:b79040681c62b0f5c3b929",
+        "android_client_info": {
+          "package_name": "com.example.mcapps1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBIuQUJY7HWw5z8g0gqru2LS0gbaIr9ILk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
