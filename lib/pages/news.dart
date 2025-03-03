@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class News extends StatefulWidget {
+  const News({super.key});
+
   @override
   _NewsState createState() => _NewsState();
 }
@@ -18,7 +20,8 @@ class _NewsState extends State<News> {
   }
 
   Future<List<Post>> fetchPosts() async {
-    final response = await http.get(Uri.parse('https://test.mchostlk.com/api_get_posts.php'));
+    final response = await http
+        .get(Uri.parse('https://test.mchostlk.com/api_get_posts.php'));
 
     if (response.statusCode == 200) {
       List<dynamic> data = json.decode(response.body);
@@ -30,7 +33,7 @@ class _NewsState extends State<News> {
 
   Future<void> _refresh() async {
     setState(() {
-      posts = fetchPosts();  // Refresh the posts
+      posts = fetchPosts(); // Refresh the posts
     });
   }
 
@@ -38,7 +41,7 @@ class _NewsState extends State<News> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'News and Events',
           style: TextStyle(
             fontWeight: FontWeight.bold,
@@ -46,17 +49,17 @@ class _NewsState extends State<News> {
             fontSize: 22,
           ),
         ),
-        backgroundColor: Colors.blueAccent,
+       backgroundColor: const Color(0xFF6378AE), 
       ),
       body: FutureBuilder<List<Post>>(
         future: posts,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text('No news available'));
+            return const Center(child: Text('No news available'));
           }
 
           return RefreshIndicator(
@@ -75,7 +78,8 @@ class _NewsState extends State<News> {
                     );
                   },
                   child: Card(
-                    margin: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
+                    margin: const EdgeInsets.symmetric(
+                        vertical: 10, horizontal: 15),
                     elevation: 5,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
@@ -86,7 +90,7 @@ class _NewsState extends State<News> {
                         Hero(
                           tag: post.id,
                           child: ClipRRect(
-                            borderRadius: BorderRadius.only(
+                            borderRadius: const BorderRadius.only(
                               topLeft: Radius.circular(15),
                               topRight: Radius.circular(15),
                             ),
@@ -95,16 +99,18 @@ class _NewsState extends State<News> {
                               fit: BoxFit.cover,
                               width: double.infinity,
                               height: 200,
-                              placeholder: (context, url) => Center(child: CircularProgressIndicator()),
-                              errorWidget: (context, url, error) => Icon(Icons.error),
+                              placeholder: (context, url) => const Center(
+                                  child: CircularProgressIndicator()),
+                              errorWidget: (context, url, error) =>
+                                  const Icon(Icons.error),
                             ),
                           ),
                         ),
                         Padding(
-                          padding: EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(10),
                           child: Text(
                             post.title,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87,
@@ -127,7 +133,7 @@ class _NewsState extends State<News> {
 class PostDetailScreen extends StatelessWidget {
   final Post post;
 
-  const PostDetailScreen({Key? key, required this.post}) : super(key: key);
+  const PostDetailScreen({super.key, required this.post});
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +146,7 @@ class PostDetailScreen extends StatelessWidget {
             color: Colors.white,
           ),
         ),
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: const Color(0xFF6378AE), // 0xFF for full opacity
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -148,7 +154,8 @@ class PostDetailScreen extends StatelessWidget {
           children: [
             // Image with proper sizing and padding
             Padding(
-              padding: const EdgeInsets.only(top: 20.0, left: 10.0, right: 10.0),
+              padding:
+                  const EdgeInsets.only(top: 20.0, left: 10.0, right: 10.0),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(15),
                 child: CachedNetworkImage(
@@ -156,14 +163,16 @@ class PostDetailScreen extends StatelessWidget {
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: 250,
-                  placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                  placeholder: (context, url) =>
+                      const Center(child: CircularProgressIndicator()),
                   errorWidget: (context, url, error) => const Icon(Icons.error),
                 ),
               ),
             ),
             // Content Section (Title & Description)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 15.0),
+              padding:
+                  const EdgeInsets.symmetric(vertical: 15.0, horizontal: 15.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -197,7 +206,7 @@ class PostDetailScreen extends StatelessWidget {
 }
 
 class Post {
-  final String id;  // Change id to String if it is a string in your API
+  final String id; // Change id to String if it is a string in your API
   final String title;
   final String description;
   final String imagePath;
@@ -213,7 +222,7 @@ class Post {
 
   factory Post.fromJson(Map<String, dynamic> json) {
     return Post(
-      id: json['id'].toString(),  // Ensure it is a String
+      id: json['id'].toString(), // Ensure it is a String
       title: json['title'],
       description: json['description'],
       imagePath: json['image_path'],

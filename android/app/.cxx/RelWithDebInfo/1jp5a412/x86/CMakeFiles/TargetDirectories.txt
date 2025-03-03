@@ -1,0 +1,2 @@
+C:/flutterp/apps/mcapps1/android/app/.cxx/RelWithDebInfo/1jp5a412/x86/CMakeFiles/edit_cache.dir
+C:/flutterp/apps/mcapps1/android/app/.cxx/RelWithDebInfo/1jp5a412/x86/CMakeFiles/rebuild_cache.dir

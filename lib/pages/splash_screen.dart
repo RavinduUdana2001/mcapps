@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
-import 'home_page.dart'; // Import home page
-import 'ldap_login.dart'; 
+import 'home_page.dart';
+import 'ldap_login.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,22 +12,57 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  double _opacity = 0.0; // For fade-in effect
-  double _scale = 0.5;  // For scaling effect
+  double _opacity = 0.0; // Fade-in effect
+  double _scale = 0.5;  // Scale-up effect
 
   @override
   void initState() {
     super.initState();
-    // Trigger the animations after a short delay
+    // Trigger animations
     Future.delayed(const Duration(milliseconds: 500), () {
       setState(() {
-        _opacity = 1.0;  // Fade-in to fully visible
-        _scale = 1.0;    // Scale to original size
+        _opacity = 1.0;
+        _scale = 1.0;
       });
     });
 
-    // Navigate to the main page after 3 seconds
-    Timer(const Duration(seconds: 5), () {
+    // Check if user is already logged in before navigating
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? userId = prefs.getString('userId');
+    int? lastLoginTime = prefs.getInt('lastLoginTime');
+
+    if (lastLoginTime != null) {
+      int currentTime = DateTime.now().millisecondsSinceEpoch;
+      int oneWeekInMillis = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+      if (currentTime - lastLoginTime < oneWeekInMillis) {
+        // User is logged in, navigate to HomePage
+        Map<String, dynamic> userData = {
+          'userId': userId,
+          'username': prefs.getString('username'),
+          'mail': prefs.getString('mail'),
+          'department': prefs.getString('department'),
+          'company': prefs.getString('company'),
+          'title': prefs.getString('title'),
+          'displayname': prefs.getString('displayname'),
+        };
+
+        Future.delayed(const Duration(seconds: 5), () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomePage(userData: userData)),
+          );
+        });
+        return;
+      }
+    }
+
+    // No session found, navigate to Login Page after splash
+    Future.delayed(const Duration(seconds: 5), () {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const LdapLoginScreen()),
@@ -46,8 +81,8 @@ class _SplashScreenState extends State<SplashScreen> {
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Color(0xFF6A11CB), // Attractive purple
-                  Color(0xFF2575FC), // Vibrant blue
+                    Color(0xFF6378AE), // Dark Blue
+                    Color(0xFF2E3A59), // Lighter Blue
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -64,42 +99,39 @@ class _SplashScreenState extends State<SplashScreen> {
               clipper: _WaveClipper(),
               child: Container(
                 height: 180,
-                color: Colors.white.withOpacity(0.2),
+               
               ),
             ),
           ),
 
           // Shimmering logo animation
           Center(
-            child: AnimatedOpacity(
-              opacity: _opacity, // Fade-in effect
-              duration: const Duration(seconds: 1),
-              child: AnimatedScale(
-                scale: _scale, // Scale-up effect
-                duration: const Duration(seconds: 1),
-                child: Shimmer.fromColors(
-                  baseColor: Colors.white,
-                  highlightColor: Colors.yellow.shade700,
-                  child: Image.asset(
-                    'assets/mcapps1.png', // Your logo image
-                    width: 250,  // Set the size for your logo
-                    height: 250, // Set the size for your logo
-                  ),
-                ),
-              ),
-            ),
-          ),
+  child: AnimatedOpacity(
+    opacity: _opacity, // Fade-in effect
+    duration: const Duration(seconds: 1),
+    child: AnimatedScale(
+      scale: _scale, // Scale-up effect
+      duration: const Duration(seconds: 1),
+      child: Image.asset(
+        'assets/loading-logo.png', // Logo image
+        width: 300,
+        height: 300,
+      ),
+    ),
+  ),
+),
 
-          // Optional: Add text below the logo with glow
+
+          // Glowing welcome text
           Positioned(
             bottom: 80,
             left: 0,
             right: 0,
             child: Text(
-              "Welcome to McApps",
+              "Welcome to McApps Testing version",
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 28,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
                 shadows: [

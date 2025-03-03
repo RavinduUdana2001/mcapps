@@ -9,4 +9,17 @@
             android:gravity="center"
             android:src="@mipmap/launch_image" />
     </item> -->
+    flutterLocalNotificationsPlugin.show(
+  0,
+  'Title',
+  'Body',
+  NotificationDetails(
+    android: AndroidNotificationDetails(
+      'your_channel_id',
+      'your_channel_name',
+      icon: 'app_icon',  // Icon name here
+    ),
+  ),
+);
+
 </layer-list>

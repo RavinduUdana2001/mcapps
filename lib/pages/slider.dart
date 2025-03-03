@@ -5,7 +5,7 @@ import 'dart:convert';
 import 'dart:async';
 
 class SliderPage extends StatefulWidget {
-  const SliderPage({Key? key}) : super(key: key);
+  const SliderPage({super.key});
 
   @override
   _SliderPageState createState() => _SliderPageState();
@@ -35,7 +35,8 @@ class _SliderPageState extends State<SliderPage> {
   // Function to fetch posts from the PHP API
   Future<void> fetchPosts() async {
     try {
-      final response = await http.get(Uri.parse('https://test.mchostlk.com/api_get_posts.php'));
+      final response = await http
+          .get(Uri.parse('https://test.mchostlk.com/api_get_posts.php'));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -71,13 +72,16 @@ class _SliderPageState extends State<SliderPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Latest News')),
       body: posts.isEmpty
-          ? const Center(child: CircularProgressIndicator()) // Show loading indicator if posts are not fetched
+          ? const Center(
+              child:
+                  CircularProgressIndicator()) // Show loading indicator if posts are not fetched
           : Column(
               children: [
                 const SizedBox(height: 10),
-                Container(
+                SizedBox(
                   height: 300, // Set fixed height for the slider
-                  width: MediaQuery.of(context).size.width * 0.9, // 90% of the screen width
+                  width: MediaQuery.of(context).size.width *
+                      0.9, // 90% of the screen width
                   child: PageView.builder(
                     controller: _pageController,
                     itemCount: posts.length,
@@ -112,7 +116,8 @@ class _SliderPageState extends State<SliderPage> {
                                 placeholder: (context, url) => const Center(
                                   child: CircularProgressIndicator(),
                                 ),
-                                errorWidget: (context, url, error) => const Icon(Icons.error),
+                                errorWidget: (context, url, error) =>
+                                    const Icon(Icons.error),
                               ),
                               Align(
                                 alignment: Alignment.bottomCenter,

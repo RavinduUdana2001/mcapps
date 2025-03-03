@@ -3,6 +3,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MoreApps extends StatefulWidget {
+  const MoreApps({super.key});
+
   @override
   _MoreAppsState createState() => _MoreAppsState();
 }
@@ -59,20 +61,21 @@ class _MoreAppsState extends State<MoreApps> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'More Apps',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            color: Colors.blueAccent,
-          ),
-        ),
-      ),
+     appBar: AppBar(
+  title: const Text(
+    'More Apps',
+    style: TextStyle(
+      fontWeight: FontWeight.bold,
+      color: Colors.white,
+    ),
+  ),
+  flexibleSpace: Container(
+    decoration: const BoxDecoration(
+      color: Color(0xFF6378AE), // Updated background color
+    ),
+  ),
+),
+
       body: Padding(
         padding: const EdgeInsets.all(12.0),
         child: LayoutBuilder(
@@ -85,7 +88,8 @@ class _MoreAppsState extends State<MoreApps> {
                 crossAxisCount: 3,
                 crossAxisSpacing: 12.0,
                 mainAxisSpacing: 12.0,
-                childAspectRatio: cardWidth / (cardWidth * 1.3), // Adjust height proportionally
+                childAspectRatio: cardWidth /
+                    (cardWidth * 1.3), // Adjust height proportionally
               ),
               itemCount: apps.length,
               itemBuilder: (context, index) {
@@ -118,7 +122,8 @@ class _MoreAppsState extends State<MoreApps> {
                             child: Center(
                               child: FaIcon(
                                 app['icon'],
-                                size: cardWidth / 6, // Adjust icon size for responsiveness
+                                size: cardWidth /
+                                    6, // Adjust icon size for responsiveness
                                 color: Colors.white,
                               ),
                             ),
@@ -129,7 +134,8 @@ class _MoreAppsState extends State<MoreApps> {
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 12.0, // Slightly smaller font to fit long names
+                              fontSize:
+                                  12.0, // Slightly smaller font to fit long names
                               color: Color(0xFF003764),
                             ),
                           ),

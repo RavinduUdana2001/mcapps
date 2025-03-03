@@ -1,0 +1,2 @@
+C:/flutterp/apps/mcapps1/android/app/.cxx/Debug/5k50fl4b/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/flutterp/apps/mcapps1/android/app/.cxx/Debug/5k50fl4b/armeabi-v7a/CMakeFiles/rebuild_cache.dir

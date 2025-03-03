@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import 'mcalets.dart';
 import 'moreapps.dart';
+import 'ldap_login.dart';
 import 'news.dart';
 
 class HomePage extends StatelessWidget {
-  final Map<String, dynamic> userData; // Added userData parameter
+  final Map<String, dynamic> userData;
 
-  const HomePage({Key? key, required this.userData}) : super(key: key);
+  const HomePage({super.key, required this.userData});
 
   @override
   Widget build(BuildContext context) {
-    final String headerImage = 'assets/123.jpg';
-    final String logoImage = 'assets/mcapps.png';
+    const String headerImage = 'assets/678.jpg';
+    const String logoImage = 'assets/mcapps.png';
 
     final List<Map<String, String>> firstRowItems = [
       {
@@ -35,102 +41,200 @@ class HomePage extends StatelessWidget {
 
     final List<Map<String, dynamic>> secondRowItems = [
       {
-        'name': 'More Apps',
-        'icon': 'fa-solid fa-ellipsis-h',
-        'page': MoreApps(),
-      },
-      {
         'name': 'Mc Alerts',
         'icon': 'fa-solid fa-bell',
-        'page':  McAlertsPage(),
+        'page': const McAlertsPage(),
       },
       {
         'name': 'News and Events',
         'icon': 'fa-solid fa-newspaper',
-        'page':  News(),
+        'page': const News(),
+      },
+      {
+        'name': 'More Apps',
+        'icon': 'fa-solid fa-ellipsis-h',
+        'page': const MoreApps(),
       },
     ];
 
-    double screenHeight = MediaQuery.of(context).size.height;
-    double bodyHeight = screenHeight * 1;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+          FlutterLocalNotificationsPlugin();
 
-    return Scaffold(
-      appBar: AppBar(
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            color: Colors.blueAccent,
-          ),
-        ),
-        elevation: 4,
-        title: Center(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+      final IOSFlutterLocalNotificationsPlugin? iosNotifications =
+          flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>();
+
+      // Check if it's not null and then request permission
+      if (iosNotifications != null) {
+        final bool? granted = await iosNotifications.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+
+        if (granted ?? false) {
+          print('Notification permission granted');
+        } else {
+          print('Notification permission denied');
+        }
+      } else {
+        print('iOS notification plugin not available.');
+      }
+    });
+
+    return WillPopScope(
+      onWillPop: () async {
+        SystemNavigator.pop(); // This exits the app
+        return false; // Prevents navigating back
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          elevation: 5,
+          title: Row(
             children: [
               Image.asset(
                 logoImage,
-                height: 60,
-                width: 60,
+                height: 40,
+                width: 40,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               const Text(
                 'McLarens Group',
                 style: TextStyle(
-                  fontSize: 24,
+                  fontSize: 25,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
                   color: Colors.white,
                 ),
               ),
             ],
           ),
-        ),
-        automaticallyImplyLeading: false,
-      ),
-      body: Container(
-        height: bodyHeight,
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              Container(
-                width: MediaQuery.of(context).size.width * 0.95,
-                height: 210,
-                margin: const EdgeInsets.symmetric(horizontal: 15),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  image: DecorationImage(
-                    image: AssetImage(headerImage),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                margin: const EdgeInsets.only(top: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(firstRowItems.length, (index) {
-                    final item = firstRowItems[index];
-                    return _buildCard(context, item);
-                  }),
-                ),
-              ),
-              const SizedBox(height: 30),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(secondRowItems.length, (index) {
-                  final item = secondRowItems[index];
-                  return _buildCard(context, item);
-                }),
-              ),
-              const SizedBox(height: 30),
-              // Displaying user data
-
-            ],
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              onPressed: () {
+                _showLogoutDialog(context);
+              },
+            ),
+          ],
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFF6378AE), // Solid Dark Blue Color
+            ),
           ),
+        ),
+        body: Stack(
+          children: [
+            // Gradient background
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color(0xFF6378AE), // Dark Blue
+                    Color(0xFFD2D8E8), // Lighter Blue
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+
+            SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Greeting Text at the Top
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20, top: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_getGreeting()},',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          userData['displayname']!,
+                          style: const TextStyle(
+                            fontSize: 23,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Header Image with Climate Widget
+                  Stack(
+                    children: [
+                      Container(
+                        width: MediaQuery.of(context).size.width * 0.95,
+                        height: 210,
+                        margin: const EdgeInsets.symmetric(horizontal: 15),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: const [],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Image.asset(
+                            headerImage,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      // Climate Widget Positioned Top-Left
+                      const Positioned(
+                        top: 20,
+                        left: 30,
+                        child: ClimateWidget(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+                  // First Row of Cards
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: List.generate(firstRowItems.length, (index) {
+                      final item = firstRowItems[index];
+                      return _buildCard(context, item);
+                    }),
+                  ),
+                  const SizedBox(height: 40),
+                  // Second Row of Cards
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: List.generate(secondRowItems.length, (index) {
+                      final item = secondRowItems[index];
+                      return _buildCard(context, item);
+                    }),
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  // Function to get greeting based on time
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
   }
 
   Widget _buildCard(BuildContext context, Map<String, dynamic> item) {
@@ -213,5 +317,124 @@ class HomePage extends StatelessWidget {
     } else {
       throw 'Could not launch $url';
     }
+  }
+
+  Future<void> _showLogoutDialog(BuildContext context) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Logout'),
+          content: const Text('Are you sure you want to logout?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('No'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Yes'),
+              onPressed: () async {
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                await prefs.clear(); // Clear user session data
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                      builder: (context) => const LdapLoginScreen()),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// Climate Widget
+class ClimateWidget extends StatefulWidget {
+  const ClimateWidget({super.key});
+
+  @override
+  _ClimateWidgetState createState() => _ClimateWidgetState();
+}
+
+class _ClimateWidgetState extends State<ClimateWidget> {
+  String temperature = '--°C';
+  String weatherIcon = 'assets/sunny.png'; // Default icon
+
+  @override
+  void initState() {
+    super.initState();
+    fetchWeatherData();
+  }
+
+  Future<void> fetchWeatherData() async {
+    const String apiKey = '3222bbdb39f967da86d6873a58b25b9d';
+    const String city = 'Colombo'; // Replace with your city
+    const String apiUrl =
+        'https://api.openweathermap.org/data/2.5/weather?q=$city&appid=$apiKey&units=metric';
+
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          temperature = '${data['main']['temp'].round()}°C';
+          final weatherCondition = data['weather'][0]['main'];
+          weatherIcon = _getWeatherIcon(weatherCondition);
+        });
+      } else {
+        throw Exception('Failed to load weather data');
+      }
+    } catch (e) {
+      print('Error fetching weather data: $e');
+    }
+  }
+
+  String _getWeatherIcon(String condition) {
+    switch (condition.toLowerCase()) {
+      case 'clear':
+        return 'assets/sunny.png';
+      case 'clouds':
+        return 'assets/cloudy.png';
+      case 'rain':
+        return 'assets/rainy.png';
+      case 'snow':
+        return 'assets/snowy.png';
+      default:
+        return 'assets/sunny.png';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(
+            weatherIcon,
+            width: 30,
+            height: 30,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            temperature,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

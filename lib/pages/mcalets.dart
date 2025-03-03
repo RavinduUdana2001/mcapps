@@ -1,8 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/io.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class McAlertsPage extends StatefulWidget {
+  final String? alertMessage;
+  const McAlertsPage({super.key, this.alertMessage});
+
   @override
   _McAlertsPageState createState() => _McAlertsPageState();
 }
@@ -10,14 +16,84 @@ class McAlertsPage extends StatefulWidget {
 class _McAlertsPageState extends State<McAlertsPage> {
   List<dynamic> _messages = [];
   bool _isLoading = true;
+  late WebSocketChannel channel;
+  late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
 
   @override
   void initState() {
     super.initState();
+    _initializeNotifications();
+    _initializeWebSocket();
     _fetchMessages();
   }
 
-  // Fetch data from backend
+  Future<void> _initializeNotifications() async {
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const InitializationSettings initializationSettings =
+        InitializationSettings(android: androidSettings);
+
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        if (response.payload != null) {
+          _navigateToMessage(response.payload!);
+        }
+      },
+    );
+  }
+
+  void _initializeWebSocket() {
+    channel = IOWebSocketChannel.connect('ws://test.mchostlk.com:8443');
+
+    channel.stream.listen(
+      (message) {
+        _handleWebSocketMessage(message);
+      },
+      onError: (error) {
+        print('WebSocket Error: $error');
+      },
+      onDone: () {
+        print('WebSocket Closed');
+      },
+    );
+  }
+
+  void _handleWebSocketMessage(String message) {
+    try {
+      final decodedMessage = json.decode(message);
+      if (decodedMessage.containsKey('title') && decodedMessage.containsKey('message')) {
+        _showNotification(decodedMessage['title'], decodedMessage['message']);
+        _fetchMessages();
+      }
+    } catch (error) {
+      print('Error decoding WebSocket message: $error');
+    }
+  }
+
+  Future<void> _showNotification(String title, String body) async {
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'alert_channel',
+      'McAlerts',
+      channelDescription: 'Alerts for important messages',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      title,
+      body,
+      platformDetails,
+      payload: json.encode({'title': title, 'message': body}),
+    );
+  }
+
   Future<void> _fetchMessages() async {
     final response =
         await http.get(Uri.parse('https://test.mchostlk.com/get_messages.php'));
@@ -31,59 +107,50 @@ class _McAlertsPageState extends State<McAlertsPage> {
       setState(() {
         _isLoading = false;
       });
-      throw Exception('Failed to load messages');
     }
   }
 
-  // Refresh function
   Future<void> _onRefresh() async {
     await _fetchMessages();
   }
 
-  // Function to get the first 20 words of the message
-  String _getMessageSnippet(String message) {
-    List<String> words = message.split(' ');
-    if (words.length > 10) {
-      words = words.sublist(0, 10);
-      return words.join(' ') + '...';
-    } else {
-      return message;
+  void _navigateToMessage(String payload) {
+    final decodedPayload = json.decode(payload);
+    if (decodedPayload != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MessageDetailPage(message: decodedPayload),
+        ),
+      );
     }
+  }
+
+  // Helper function to truncate text to 20 words
+  String _truncateTo20Words(String text) {
+    final words = text.split(' ');
+    if (words.length > 20) {
+      return '${words.take(20).join(' ')}...';
+    }
+    return text;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-appBar: AppBar(
-  title: Text(
-    'McAlerts',
-    style: TextStyle(
-      fontWeight: FontWeight.bold,
-      fontSize: 24,
-      color: Colors.white, // Set text color to white
-    ),
-  ),
-  backgroundColor: Colors.blueAccent, // Vibrant blue color
-  elevation: 4,
-  flexibleSpace: Container(
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        colors: [const Color.fromRGBO(68, 138, 255, 1), Colors.blue], // Softer blue gradient
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+      appBar: AppBar(
+        title: const Text(
+          'McAlerts',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF6378AE),
       ),
-    ),
-  ),
-),
-
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _onRefresh,
               child: _messages.isEmpty
-                  ? Center(
-                      child: Text("No messages available",
-                          style: TextStyle(fontSize: 18, color: Colors.grey)))
+                  ? const Center(child: Text("No messages available", style: TextStyle(fontSize: 18, color: Colors.grey)))
                   : ListView.builder(
                       itemCount: _messages.length,
                       itemBuilder: (context, index) {
@@ -93,46 +160,32 @@ appBar: AppBar(
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => MessageDetailPage(
-                                  message: message,
-                                ),
+                                builder: (context) => MessageDetailPage(message: message),
                               ),
                             );
                           },
                           child: Card(
-                            margin: EdgeInsets.all(16),
+                            margin: const EdgeInsets.all(16),
                             elevation: 8,
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(20), // Rounded corners
-                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                             child: Padding(
-                              padding: EdgeInsets.all(20),
+                              padding: const EdgeInsets.all(20),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     message['title'],
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          const Color.fromRGBO(0, 55, 100, 1), // Blue for title
-                                    ),
+                                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue),
                                   ),
-                                  SizedBox(height: 10),
+                                  const SizedBox(height: 10),
                                   Text(
-                                    _getMessageSnippet(message['message']), // Displaying the snippet
-                                    style: TextStyle(
-                                        fontSize: 16, color: Colors.black87),
+                                    _truncateTo20Words(message['message']), // Truncate to 20 words
+                                    style: const TextStyle(fontSize: 16, color: Colors.black87),
                                   ),
-                                  SizedBox(height: 10),
+                                  const SizedBox(height: 10),
                                   Text(
                                     'Published on: ${message['created_at']}',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
-                                    ),
+                                    style: const TextStyle(fontSize: 14, color: Colors.grey),
                                   ),
                                 ],
                               ),
@@ -146,73 +199,30 @@ appBar: AppBar(
   }
 }
 
-// Detailed message page
-// Detailed message page
 class MessageDetailPage extends StatelessWidget {
   final dynamic message;
-
-  MessageDetailPage({required this.message});
+  const MessageDetailPage({super.key, required this.message});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          message['title'],
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-            color: Colors.white, // Title color set to white
-          ),
-        ),
-        backgroundColor: Colors.blueAccent,
-        elevation: 4,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blueAccent, Colors.blue],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
+        title: Text(message['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Colors.white)),
+        backgroundColor: const Color(0xFF6378AE),
       ),
       body: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title Section
-            Text(
-              message['title'],
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: const Color.fromARGB(255, 5, 11, 23), // Consistent blue color
-              ),
-            ),
-            SizedBox(height: 20),
-            // Message Section
-            Text(
-              message['message'],
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.black87,
-              ),
-            ),
-            SizedBox(height: 20),
-            // Created At Section
-            Text(
-              'Published on: ${message['created_at']}',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
+            Text(message['title'], style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.black)),
+            const SizedBox(height: 20),
+            Text(message['message'], style: const TextStyle(fontSize: 18, color: Colors.black87)), // Full message
+            const SizedBox(height: 20),
+            Text('Published on: ${message['created_at']}', style: const TextStyle(fontSize: 16, color: Colors.grey)),
           ],
         ),
       ),
     );
   }
 }
-
